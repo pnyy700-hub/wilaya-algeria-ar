@@ -1,0 +1,1693 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    >
+
+    <title>الهروب الفضائي: آخر ناجٍ</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #050816;
+            font-family: Arial, sans-serif;
+            color: white;
+            touch-action: none;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #game {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            max-width: 700px;
+            overflow: hidden;
+            background:
+                radial-gradient(circle at 20% 20%, #172554 0, transparent 25%),
+                radial-gradient(circle at 80% 70%, #312e81 0, transparent 25%),
+                linear-gradient(#020617, #0f172a);
+        }
+
+        canvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* ------------------------------
+           واجهة المعلومات
+        ------------------------------ */
+
+        #hud {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            right: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        .hud-box {
+            min-width: 100px;
+            padding: 8px 12px;
+            border: 1px solid rgba(255,255,255,0.18);
+            border-radius: 14px;
+            background: rgba(15,23,42,0.72);
+            backdrop-filter: blur(8px);
+            text-align: center;
+        }
+
+        .hud-title {
+            display: block;
+            font-size: 12px;
+            opacity: 0.7;
+            margin-bottom: 3px;
+        }
+
+        .hud-value {
+            display: block;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        /* ------------------------------
+           شاشة البداية والخسارة
+        ------------------------------ */
+
+        .screen {
+            position: absolute;
+            inset: 0;
+            z-index: 10;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            background: rgba(2,6,23,0.78);
+            backdrop-filter: blur(8px);
+        }
+
+        .screen.hidden {
+            display: none;
+        }
+
+        .panel {
+            width: min(92%, 430px);
+            padding: 30px 22px;
+            border: 1px solid rgba(255,255,255,0.16);
+            border-radius: 26px;
+            background: rgba(15,23,42,0.92);
+            text-align: center;
+            box-shadow: 0 20px 80px rgba(0,0,0,0.5);
+        }
+
+        .logo {
+            font-size: 64px;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .description {
+            color: #cbd5e1;
+            line-height: 1.8;
+            margin-bottom: 20px;
+        }
+
+        .result {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.06);
+        }
+
+        .result strong {
+            display: block;
+            font-size: 34px;
+            margin-top: 5px;
+        }
+
+        /* ------------------------------
+           الأزرار
+        ------------------------------ */
+
+        button {
+            border: none;
+            cursor: pointer;
+            color: white;
+            font-size: 17px;
+            font-weight: bold;
+            border-radius: 15px;
+            padding: 14px 20px;
+            min-height: 52px;
+        }
+
+        #startButton,
+        #restartButton {
+            width: 100%;
+            background: #2563eb;
+        }
+
+        #startButton:active,
+        #restartButton:active {
+            transform: scale(0.97);
+        }
+
+        #pauseButton {
+            position: absolute;
+            top: 75px;
+            left: 12px;
+            z-index: 6;
+            min-width: 52px;
+            padding: 10px;
+            background: rgba(15,23,42,0.75);
+            border: 1px solid rgba(255,255,255,0.18);
+            font-size: 22px;
+        }
+
+        /* ------------------------------
+           أزرار الهاتف
+        ------------------------------ */
+
+        #mobileControls {
+            position: absolute;
+            bottom: 18px;
+            left: 0;
+            right: 0;
+            z-index: 7;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 22px;
+            pointer-events: none;
+        }
+
+        .control-button {
+            width: 78px;
+            height: 78px;
+            min-height: 78px;
+            border-radius: 50%;
+            background: rgba(30,41,59,0.75);
+            border: 2px solid rgba(255,255,255,0.18);
+            font-size: 30px;
+            pointer-events: auto;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .control-button:active {
+            transform: scale(0.9);
+            background: rgba(37,99,235,0.8);
+        }
+
+        #pauseMessage {
+            position: absolute;
+            inset: 0;
+            z-index: 8;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.45);
+            font-size: 40px;
+            font-weight: bold;
+        }
+
+        #pauseMessage.show {
+            display: flex;
+        }
+
+        /* ------------------------------
+           شاشات كبيرة
+        ------------------------------ */
+
+        @media (min-width: 700px) {
+            #mobileControls {
+                display: none;
+            }
+
+            #game {
+                height: 100vh;
+                border-left: 1px solid rgba(255,255,255,0.08);
+                border-right: 1px solid rgba(255,255,255,0.08);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div id="game">
+
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- معلومات اللعبة -->
+    <div id="hud">
+
+        <div class="hud-box">
+            <span class="hud-title">النقاط</span>
+            <span id="score" class="hud-value">0</span>
+        </div>
+
+        <div class="hud-box">
+            <span class="hud-title">الحياة</span>
+            <span id="lives" class="hud-value">❤️❤️❤️</span>
+        </div>
+
+        <div class="hud-box">
+            <span class="hud-title">أفضل نتيجة</span>
+            <span id="best" class="hud-value">0</span>
+        </div>
+
+    </div>
+
+    <!-- زر الإيقاف -->
+    <button id="pauseButton" type="button">⏸️</button>
+
+    <!-- شاشة البداية -->
+    <section id="startScreen" class="screen">
+
+        <div class="panel">
+
+            <div class="logo">🛸</div>
+
+            <h1>الهروب الفضائي</h1>
+
+            <p class="description">
+                أنت آخر ناجٍ في الفضاء!
+                <br>
+                تحرك بالمركبة وتجنب النيازك ☄️
+                <br>
+                واجمع النجوم ⭐ لتحصل على أكبر عدد من النقاط.
+            </p>
+
+            <button id="startButton" type="button">
+                🚀 ابدأ اللعبة
+            </button>
+
+        </div>
+
+    </section>
+
+    <!-- شاشة الخسارة -->
+    <section id="gameOverScreen" class="screen hidden">
+
+        <div class="panel">
+
+            <div class="logo">💥</div>
+
+            <h1>انتهت اللعبة</h1>
+
+            <div class="result">
+                <span>نتيجتك</span>
+                <strong id="finalScore">0</strong>
+            </div>
+
+            <div class="result">
+                <span>أفضل نتيجة</span>
+                <strong id="finalBest">0</strong>
+            </div>
+
+            <button id="restartButton" type="button">
+                🔄 العب مرة أخرى
+            </button>
+
+        </div>
+
+    </section>
+
+    <!-- رسالة التوقف -->
+    <div id="pauseMessage">
+        ⏸️ متوقف
+    </div>
+
+    <!-- أزرار الهاتف -->
+    <div id="mobileControls">
+
+        <button
+            id="leftButton"
+            class="control-button"
+            type="button"
+            aria-label="تحرك يسار"
+        >
+            ◀️
+        </button>
+
+        <button
+            id="rightButton"
+            class="control-button"
+            type="button"
+            aria-label="تحرك يمين"
+        >
+            ▶️
+        </button>
+
+    </div>
+
+</div>
+
+
+<script>
+/* =========================================================
+   لعبة الهروب الفضائي: آخر ناجٍ
+   ========================================================= */
+
+
+/* =========================================================
+   1. الحصول على عناصر الصفحة
+   ========================================================= */
+
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+const game = document.getElementById("game");
+
+const scoreElement = document.getElementById("score");
+const livesElement = document.getElementById("lives");
+const bestElement = document.getElementById("best");
+
+const startScreen = document.getElementById("startScreen");
+const gameOverScreen = document.getElementById("gameOverScreen");
+
+const startButton = document.getElementById("startButton");
+const restartButton = document.getElementById("restartButton");
+
+const finalScoreElement = document.getElementById("finalScore");
+const finalBestElement = document.getElementById("finalBest");
+
+const pauseButton = document.getElementById("pauseButton");
+const pauseMessage = document.getElementById("pauseMessage");
+
+const leftButton = document.getElementById("leftButton");
+const rightButton = document.getElementById("rightButton");
+
+
+/* =========================================================
+   2. حجم اللعبة
+   ========================================================= */
+
+let width = 0;
+let height = 0;
+
+function resizeCanvas() {
+
+    const rect = game.getBoundingClientRect();
+
+    width = Math.max(320, rect.width);
+    height = Math.max(500, rect.height);
+
+    const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+
+    canvas.width = Math.floor(width * pixelRatio);
+    canvas.height = Math.floor(height * pixelRatio);
+
+    canvas.style.width = width + "px";
+    canvas.style.height = height + "px";
+
+    ctx.setTransform(
+        pixelRatio,
+        0,
+        0,
+        pixelRatio,
+        0,
+        0
+    );
+}
+
+window.addEventListener("resize", resizeCanvas);
+
+resizeCanvas();
+
+
+/* =========================================================
+   3. حالة اللعبة
+   ========================================================= */
+
+let running = false;
+let paused = false;
+
+let score = 0;
+let lives = 3;
+
+let bestScore = Number(
+    localStorage.getItem("spaceEscapeBest") || 0
+);
+
+bestElement.textContent = bestScore;
+
+
+/* =========================================================
+   4. اللاعب
+   ========================================================= */
+
+const player = {
+
+    x: width / 2,
+
+    y: height - 130,
+
+    width: 58,
+
+    height: 72,
+
+    speed: 7,
+
+    targetX: width / 2,
+
+    invincible: false,
+
+    invincibleTime: 0
+
+};
+
+
+/* =========================================================
+   5. النيازك والنجوم
+   ========================================================= */
+
+let meteors = [];
+let stars = [];
+let particles = [];
+
+let meteorTimer = 0;
+let starTimer = 0;
+
+let gameSpeed = 2.5;
+
+
+/* =========================================================
+   6. التحكم
+   ========================================================= */
+
+let moveLeft = false;
+let moveRight = false;
+
+
+/* لوحة المفاتيح */
+
+window.addEventListener("keydown", function(event) {
+
+    if (event.key === "ArrowLeft") {
+        moveLeft = true;
+    }
+
+    if (event.key === "ArrowRight") {
+        moveRight = true;
+    }
+
+    if (event.key === " " && running) {
+        togglePause();
+    }
+
+});
+
+
+window.addEventListener("keyup", function(event) {
+
+    if (event.key === "ArrowLeft") {
+        moveLeft = false;
+    }
+
+    if (event.key === "ArrowRight") {
+        moveRight = false;
+    }
+
+});
+
+
+/* =========================================================
+   7. التحكم باللمس
+   ========================================================= */
+
+function startLeft(event) {
+
+    event.preventDefault();
+
+    moveLeft = true;
+}
+
+function stopLeft(event) {
+
+    event.preventDefault();
+
+    moveLeft = false;
+}
+
+function startRight(event) {
+
+    event.preventDefault();
+
+    moveRight = true;
+}
+
+function stopRight(event) {
+
+    event.preventDefault();
+
+    moveRight = false;
+}
+
+
+leftButton.addEventListener("pointerdown", startLeft);
+leftButton.addEventListener("pointerup", stopLeft);
+leftButton.addEventListener("pointercancel", stopLeft);
+leftButton.addEventListener("pointerleave", stopLeft);
+
+rightButton.addEventListener("pointerdown", startRight);
+rightButton.addEventListener("pointerup", stopRight);
+rightButton.addEventListener("pointercancel", stopRight);
+rightButton.addEventListener("pointerleave", stopRight);
+
+
+/* =========================================================
+   8. الأصوات
+   ========================================================= */
+
+let audioContext = null;
+
+function initializeAudio() {
+
+    if (!audioContext) {
+
+        const AudioContext =
+            window.AudioContext ||
+            window.webkitAudioContext;
+
+        if (AudioContext) {
+            audioContext = new AudioContext();
+        }
+    }
+
+    if (
+        audioContext &&
+        audioContext.state === "suspended"
+    ) {
+        audioContext.resume();
+    }
+}
+
+
+function playSound(
+    frequency,
+    duration,
+    type = "sine",
+    volume = 0.05
+) {
+
+    if (!audioContext) {
+        return;
+    }
+
+    const oscillator =
+        audioContext.createOscillator();
+
+    const gain =
+        audioContext.createGain();
+
+    oscillator.type = type;
+
+    oscillator.frequency.value = frequency;
+
+    gain.gain.setValueAtTime(
+        volume,
+        audioContext.currentTime
+    );
+
+    gain.gain.exponentialRampToValueAtTime(
+        0.001,
+        audioContext.currentTime + duration
+    );
+
+    oscillator.connect(gain);
+
+    gain.connect(audioContext.destination);
+
+    oscillator.start();
+
+    oscillator.stop(
+        audioContext.currentTime + duration
+    );
+}
+
+
+/* =========================================================
+   9. إنشاء نيزك
+   ========================================================= */
+
+function createMeteor() {
+
+    const size =
+        22 + Math.random() * 34;
+
+    meteors.push({
+
+        x: size + Math.random() * (width - size * 2),
+
+        y: -size,
+
+        size: size,
+
+        speed:
+            gameSpeed +
+            1 +
+            Math.random() * 2.5,
+
+        rotation: Math.random() * Math.PI * 2,
+
+        rotationSpeed:
+            (Math.random() - 0.5) * 0.08
+
+    });
+}
+
+
+/* =========================================================
+   10. إنشاء نجمة
+   ========================================================= */
+
+function createStar() {
+
+    stars.push({
+
+        x: 15 + Math.random() * (width - 30),
+
+        y: -20,
+
+        size: 10 + Math.random() * 6,
+
+        speed: gameSpeed + 1,
+
+        rotation: 0,
+
+        rotationSpeed: 0.04
+
+    });
+}
+
+
+/* =========================================================
+   11. إنشاء الجزيئات
+   ========================================================= */
+
+function createExplosion(x, y) {
+
+    for (let i = 0; i < 20; i++) {
+
+        particles.push({
+
+            x: x,
+
+            y: y,
+
+            vx:
+                (Math.random() - 0.5) * 8,
+
+            vy:
+                (Math.random() - 0.5) * 8,
+
+            size:
+                2 + Math.random() * 4,
+
+            life: 1
+
+        });
+    }
+}
+
+
+/* =========================================================
+   12. رسم النجوم في الخلفية
+   ========================================================= */
+
+const backgroundStars = [];
+
+for (let i = 0; i < 100; i++) {
+
+    backgroundStars.push({
+
+        x: Math.random(),
+
+        y: Math.random(),
+
+        size:
+            0.5 + Math.random() * 2,
+
+        speed:
+            0.2 + Math.random() * 0.8
+
+    });
+}
+
+
+function drawBackground() {
+
+    ctx.fillStyle = "#020617";
+
+    ctx.fillRect(
+        0,
+        0,
+        width,
+        height
+    );
+
+    for (const star of backgroundStars) {
+
+        star.y += star.speed * 0.0005;
+
+        if (star.y > 1) {
+            star.y = 0;
+        }
+
+        ctx.beginPath();
+
+        ctx.arc(
+            star.x * width,
+            star.y * height,
+            star.size,
+            0,
+            Math.PI * 2
+        );
+
+        ctx.fillStyle = "rgba(255,255,255,0.8)";
+
+        ctx.fill();
+    }
+}
+
+
+/* =========================================================
+   13. رسم المركبة
+   ========================================================= */
+
+function drawPlayer() {
+
+    if (
+        player.invincible &&
+        Math.floor(player.invincibleTime / 100) % 2 === 0
+    ) {
+        return;
+    }
+
+    ctx.save();
+
+    ctx.translate(
+        player.x,
+        player.y
+    );
+
+    /* اللهب */
+
+    ctx.beginPath();
+
+    ctx.moveTo(-10, 28);
+
+    ctx.lineTo(0, 48 + Math.random() * 10);
+
+    ctx.lineTo(10, 28);
+
+    ctx.closePath();
+
+    ctx.fillStyle = "#f97316";
+
+    ctx.fill();
+
+    /* جسم المركبة */
+
+    ctx.beginPath();
+
+    ctx.moveTo(0, -36);
+
+    ctx.lineTo(29, 28);
+
+    ctx.lineTo(0, 18);
+
+    ctx.lineTo(-29, 28);
+
+    ctx.closePath();
+
+    ctx.fillStyle = "#38bdf8";
+
+    ctx.fill();
+
+    ctx.strokeStyle = "#e0f2fe";
+
+    ctx.lineWidth = 2;
+
+    ctx.stroke();
+
+    /* الزجاج */
+
+    ctx.beginPath();
+
+    ctx.arc(
+        0,
+        -10,
+        11,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fillStyle = "#0f172a";
+
+    ctx.fill();
+
+    ctx.strokeStyle = "#bae6fd";
+
+    ctx.stroke();
+
+    ctx.restore();
+}
+
+
+/* =========================================================
+   14. رسم النيزك
+   ========================================================= */
+
+function drawMeteor(meteor) {
+
+    ctx.save();
+
+    ctx.translate(
+        meteor.x,
+        meteor.y
+    );
+
+    ctx.rotate(
+        meteor.rotation
+    );
+
+    ctx.beginPath();
+
+    const points = 9;
+
+    for (let i = 0; i < points; i++) {
+
+        const angle =
+            (Math.PI * 2 * i) / points;
+
+        const radius =
+            meteor.size *
+            (
+                0.75 +
+                Math.random() * 0.25
+            );
+
+        const x =
+            Math.cos(angle) * radius;
+
+        const y =
+            Math.sin(angle) * radius;
+
+        if (i === 0) {
+            ctx.moveTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
+    }
+
+    ctx.closePath();
+
+    ctx.fillStyle = "#a16207";
+
+    ctx.fill();
+
+    ctx.strokeStyle = "#f59e0b";
+
+    ctx.lineWidth = 2;
+
+    ctx.stroke();
+
+    /* الحفرة */
+
+    ctx.beginPath();
+
+    ctx.arc(
+        -meteor.size * 0.2,
+        -meteor.size * 0.1,
+        meteor.size * 0.16,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fillStyle = "#713f12";
+
+    ctx.fill();
+
+    ctx.restore();
+}
+
+
+/* =========================================================
+   15. رسم النجمة
+   ========================================================= */
+
+function drawStar(star) {
+
+    ctx.save();
+
+    ctx.translate(
+        star.x,
+        star.y
+    );
+
+    ctx.rotate(
+        star.rotation
+    );
+
+    ctx.beginPath();
+
+    const spikes = 5;
+
+    for (let i = 0; i < spikes * 2; i++) {
+
+        const angle =
+            -Math.PI / 2 +
+            (Math.PI * i) / spikes;
+
+        const radius =
+            i % 2 === 0
+                ? star.size
+                : star.size * 0.45;
+
+        const x =
+            Math.cos(angle) * radius;
+
+        const y =
+            Math.sin(angle) * radius;
+
+        if (i === 0) {
+            ctx.moveTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
+    }
+
+    ctx.closePath();
+
+    ctx.fillStyle = "#fde047";
+
+    ctx.fill();
+
+    ctx.strokeStyle = "#fff7ae";
+
+    ctx.stroke();
+
+    ctx.restore();
+}
+
+
+/* =========================================================
+   16. رسم الجزيئات
+   ========================================================= */
+
+function drawParticles() {
+
+    for (const particle of particles) {
+
+        ctx.globalAlpha = particle.life;
+
+        ctx.beginPath();
+
+        ctx.arc(
+            particle.x,
+            particle.y,
+            particle.size,
+            0,
+            Math.PI * 2
+        );
+
+        ctx.fillStyle = "#f97316";
+
+        ctx.fill();
+    }
+
+    ctx.globalAlpha = 1;
+}
+
+
+/* =========================================================
+   17. تحديث اللاعب
+   ========================================================= */
+
+function updatePlayer(delta) {
+
+    if (moveLeft) {
+        player.x -= player.speed;
+    }
+
+    if (moveRight) {
+        player.x += player.speed;
+    }
+
+    /*
+       إبقاء المركبة داخل الشاشة
+    */
+
+    const halfWidth =
+        player.width / 2;
+
+    if (player.x < halfWidth) {
+        player.x = halfWidth;
+    }
+
+    if (player.x > width - halfWidth) {
+        player.x = width - halfWidth;
+    }
+
+    if (player.invincible) {
+
+        player.invincibleTime -= delta;
+
+        if (player.invincibleTime <= 0) {
+
+            player.invincible = false;
+
+            player.invincibleTime = 0;
+        }
+    }
+}
+
+
+/* =========================================================
+   18. تحديث النيازك
+   ========================================================= */
+
+function updateMeteors(delta) {
+
+    meteorTimer -= delta;
+
+    /*
+       كلما ارتفعت النتيجة،
+       تقل مدة الانتظار بين النيازك.
+    */
+
+    const spawnTime =
+        Math.max(
+            220,
+            800 - score * 4
+        );
+
+    if (meteorTimer <= 0) {
+
+        createMeteor();
+
+        meteorTimer = spawnTime;
+    }
+
+
+    for (let i = meteors.length - 1; i >= 0; i--) {
+
+        const meteor = meteors[i];
+
+        meteor.y +=
+            meteor.speed *
+            (delta / 16.67);
+
+        meteor.rotation +=
+            meteor.rotationSpeed *
+            (delta / 16.67);
+
+        if (
+            meteor.y >
+            height + meteor.size * 2
+        ) {
+
+            meteors.splice(i, 1);
+        }
+    }
+}
+
+
+/* =========================================================
+   19. تحديث النجوم
+   ========================================================= */
+
+function updateStars(delta) {
+
+    starTimer -= delta;
+
+    if (starTimer <= 0) {
+
+        createStar();
+
+        starTimer =
+            1000 +
+            Math.random() * 1000;
+    }
+
+
+    for (let i = stars.length - 1; i >= 0; i--) {
+
+        const star = stars[i];
+
+        star.y +=
+            star.speed *
+            (delta / 16.67);
+
+        star.rotation +=
+            star.rotationSpeed *
+            (delta / 16.67);
+
+        if (star.y > height + 30) {
+
+            stars.splice(i, 1);
+        }
+    }
+}
+
+
+/* =========================================================
+   20. تحديث الجزيئات
+   ========================================================= */
+
+function updateParticles(delta) {
+
+    for (
+        let i = particles.length - 1;
+        i >= 0;
+        i--
+    ) {
+
+        const particle =
+            particles[i];
+
+        particle.x +=
+            particle.vx *
+            (delta / 16.67);
+
+        particle.y +=
+            particle.vy *
+            (delta / 16.67);
+
+        particle.life -=
+            0.025 *
+            (delta / 16.67);
+
+        if (particle.life <= 0) {
+
+            particles.splice(i, 1);
+        }
+    }
+}
+
+
+/* =========================================================
+   21. فحص التصادم
+   ========================================================= */
+
+function circleRectangleCollision(
+    circleX,
+    circleY,
+    circleRadius,
+    rectX,
+    rectY,
+    rectWidth,
+    rectHeight
+) {
+
+    const closestX =
+        Math.max(
+            rectX,
+            Math.min(
+                circleX,
+                rectX + rectWidth
+            )
+        );
+
+    const closestY =
+        Math.max(
+            rectY,
+            Math.min(
+                circleY,
+                rectY + rectHeight
+            )
+        );
+
+    const dx =
+        circleX - closestX;
+
+    const dy =
+        circleY - closestY;
+
+    return (
+        dx * dx +
+        dy * dy
+    ) < (
+        circleRadius *
+        circleRadius
+    );
+}
+
+
+/* =========================================================
+   22. فحص النيازك
+   ========================================================= */
+
+function checkMeteorCollisions() {
+
+    if (player.invincible) {
+        return;
+    }
+
+    for (
+        let i = meteors.length - 1;
+        i >= 0;
+        i--
+    ) {
+
+        const meteor =
+            meteors[i];
+
+        const hit =
+            circleRectangleCollision(
+
+                meteor.x,
+
+                meteor.y,
+
+                meteor.size * 0.75,
+
+                player.x -
+                    player.width / 2,
+
+                player.y -
+                    player.height / 2,
+
+                player.width,
+
+                player.height
+            );
+
+        if (hit) {
+
+            meteors.splice(i, 1);
+
+            lives--;
+
+            updateLives();
+
+            createExplosion(
+                player.x,
+                player.y
+            );
+
+            playSound(
+                100,
+                0.3,
+                "sawtooth",
+                0.08
+            );
+
+            player.invincible = true;
+
+            player.invincibleTime = 1200;
+
+            if (lives <= 0) {
+
+                endGame();
+
+                return;
+            }
+
+            break;
+        }
+    }
+}
+
+
+/* =========================================================
+   23. فحص النجوم
+   ========================================================= */
+
+function checkStarCollisions() {
+
+    for (
+        let i = stars.length - 1;
+        i >= 0;
+        i--
+    ) {
+
+        const star = stars[i];
+
+        const dx =
+            star.x - player.x;
+
+        const dy =
+            star.y - player.y;
+
+        const distance =
+            Math.sqrt(
+                dx * dx +
+                dy * dy
+            );
+
+        if (
+            distance <
+            star.size + 35
+        ) {
+
+            stars.splice(i, 1);
+
+            score += 10;
+
+            updateScore();
+
+            playSound(
+                700,
+                0.12,
+                "sine",
+                0.04
+            );
+        }
+    }
+}
+
+
+/* =========================================================
+   24. تحديث النقاط
+   ========================================================= */
+
+function updateScore() {
+
+    scoreElement.textContent =
+        score;
+
+    if (score > bestScore) {
+
+        bestScore = score;
+
+        bestElement.textContent =
+            bestScore;
+
+        localStorage.setItem(
+            "spaceEscapeBest",
+            bestScore
+        );
+    }
+}
+
+
+/* =========================================================
+   25. تحديث الحياة
+   ========================================================= */
+
+function updateLives() {
+
+    let hearts = "";
+
+    for (let i = 0; i < lives; i++) {
+
+        hearts += "❤️";
+    }
+
+    for (let i = lives; i < 3; i++) {
+
+        hearts += "🖤";
+    }
+
+    livesElement.textContent =
+        hearts;
+}
+
+
+/* =========================================================
+   26. زيادة صعوبة اللعبة
+   ========================================================= */
+
+function updateDifficulty() {
+
+    /*
+       كلما زادت النقاط،
+       تزيد سرعة النيازك.
+    */
+
+    gameSpeed =
+        2.5 +
+        Math.min(
+            5,
+            score / 100
+        );
+}
+
+
+/* =========================================================
+   27. بدء اللعبة
+   ========================================================= */
+
+function startGame() {
+
+    initializeAudio();
+
+    score = 0;
+
+    lives = 3;
+
+    gameSpeed = 2.5;
+
+    meteorTimer = 0;
+
+    starTimer = 500;
+
+    meteors = [];
+
+    stars = [];
+
+    particles = [];
+
+    player.x =
+        width / 2;
+
+    player.y =
+        height - 130;
+
+    player.invincible = false;
+
+    player.invincibleTime = 0;
+
+    running = true;
+
+    paused = false;
+
+    startScreen.classList.add("hidden");
+
+    gameOverScreen.classList.add("hidden");
+
+    pauseMessage.classList.remove("show");
+
+    updateScore();
+
+    updateLives();
+
+    lastTime =
+        performance.now();
+
+    requestAnimationFrame(
+        gameLoop
+    );
+}
+
+
+/* =========================================================
+   28. إنهاء اللعبة
+   ========================================================= */
+
+function endGame() {
+
+    running = false;
+
+    paused = false;
+
+    finalScoreElement.textContent =
+        score;
+
+    finalBestElement.textContent =
+        bestScore;
+
+    gameOverScreen.classList.remove(
+        "hidden"
+    );
+
+    playSound(
+        80,
+        0.5,
+        "sawtooth",
+        0.08
+    );
+}
+
+
+/* =========================================================
+   29. الإيقاف المؤقت
+   ========================================================= */
+
+function togglePause() {
+
+    if (!running) {
+        return;
+    }
+
+    paused = !paused;
+
+    if (paused) {
+
+        pauseMessage.classList.add(
+            "show"
+        );
+
+        pauseButton.textContent =
+            "▶️";
+
+    } else {
+
+        pauseMessage.classList.remove(
+            "show"
+        );
+
+        pauseButton.textContent =
+            "⏸️";
+
+        lastTime =
+            performance.now();
+
+        requestAnimationFrame(
+            gameLoop
+        );
+    }
+}
+
+
+/* =========================================================
+   30. الحلقة الرئيسية للعبة
+   ========================================================= */
+
+let lastTime = 0;
+
+function gameLoop(currentTime) {
+
+    if (!running || paused) {
+        return;
+    }
+
+    let delta =
+        currentTime - lastTime;
+
+    /*
+       منع القفزات الكبيرة إذا
+       حدث تأخير في المتصفح.
+    */
+
+    delta =
+        Math.min(
+            delta,
+            50
+        );
+
+    lastTime =
+        currentTime;
+
+
+    /* تحديث */
+
+    updatePlayer(delta);
+
+    updateMeteors(delta);
+
+    updateStars(delta);
+
+    updateParticles(delta);
+
+    updateDifficulty();
+
+    checkMeteorCollisions();
+
+    checkStarCollisions();
+
+
+    /* الرسم */
+
+    drawBackground();
+
+    for (const star of stars) {
+
+        drawStar(star);
+    }
+
+    for (const meteor of meteors) {
+
+        drawMeteor(meteor);
+    }
+
+    drawParticles();
+
+    drawPlayer();
+
+
+    /* استمرار اللعبة */
+
+    if (running && !paused) {
+
+        requestAnimationFrame(
+            gameLoop
+        );
+    }
+}
+
+
+/* =========================================================
+   31. أزرار البداية وإعادة اللعب
+   ========================================================= */
+
+startButton.addEventListener(
+    "click",
+    startGame
+);
+
+restartButton.addEventListener(
+    "click",
+    startGame
+);
+
+pauseButton.addEventListener(
+    "click",
+    togglePause
+);
+
+
+/* =========================================================
+   32. رسم الخلفية الأولية
+   ========================================================= */
+
+drawBackground();
+
+drawPlayer();
+
+updateLives();
+
+updateScore();
+</script>
+
+</body>
+</html>
